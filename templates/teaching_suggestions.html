@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Teaching Suggestions - Attendance & Engagement Agent{% endblock %}
+{% block page_title %}Pedagogical Teaching Suggestions{% endblock %}
+
+{% block content %}
+<!-- Disclaimer Banner -->
+<div class="notice-box">
+    <strong>📋 Transparent Rule-Based Engine:</strong> 
+    These teaching suggestions are generated using deterministic, rule-based Python logic mapping classroom engagement indicators (visual movement, continuous inactivity duration, and acoustic participation) to pedagogical interventions. No complex or black-box generative AI is involved, ensuring complete reproducibility and explainability during college evaluation.
+</div>
+
+<!-- Session Picker Strip -->
+<div class="card" style="margin-bottom: 24px;">
+    <div class="card-body" style="padding: 16px 22px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+        <span style="font-weight: 600; font-size: 13.5px;">Select Classroom Session:</span>
+        <form method="GET" action="{{ url_for('teaching_suggestions') }}" style="display: flex; gap: 10px; align-items: center; flex: 1; max-width: 480px;">
+            <select name="session_id" class="form-control" onchange="this.form.submit();">
+                {% for s in recent_sessions %}
+                    <option value="{{ s.id }}" {% if selected_session and selected_session.id == s.id %}selected{% endif %}>
+                        {{ s.session_date }} &mdash; Score: {{ s.engagement_score }}/100 ({{ s.category }})
+                    </option>
+                {% endfor %}
+            </select>
+            <noscript><button type="submit" class="btn btn-secondary btn-sm">Load</button></noscript>
+        </form>
+        <a href="{{ url_for('engagement') }}" class="btn btn-outline btn-sm">➕ Simulate New Session</a>
+    </div>
+</div>
+
+{% if selected_session %}
+    <div class="grid-2">
+        <!-- Suggestions Card -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h3 class="card-title">Actionable Teaching Recommendations</h3>
+                    <p class="card-subtitle">Recommended adjustments for the instructor</p>
+                </div>
+                <span class="badge {% if selected_session.engagement_score >= 75 %}badge-high{% elif selected_session.engagement_score >= 50 %}badge-warning{% else %}badge-low{% endif %}">
+                    {{ selected_session.category }}
+                </span>
+            </div>
+            <div class="card-body">
+                <ul class="suggestions-list">
+                    {% for sug in selected_session.suggestions_list %}
+                        <li class="suggestion-item">
+                            <span class="suggestion-icon">💡</span>
+                            <div class="suggestion-content">
+                                <strong>Intervention Strategy</strong>
+                                <p>{{ sug }}</p>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+
+                {% if selected_session.session_notes %}
+                    <div style="margin-top: 20px; padding: 12px 16px; background: #f8fafc; border-radius: var(--radius-md); font-size: 13px;">
+                        <strong>Session Topic / Notes:</strong> {{ selected_session.session_notes }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Rule Engine Transparency & Viva Explanation -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h3 class="card-title">Rule Engine Transparency & Viva Guide</h3>
+                    <p class="card-subtitle">Exact conditional logic that triggered the recommendations</p>
+                </div>
+            </div>
+            <div class="card-body">
+                <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 16px;">
+                    <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">
+                        Observed Multimodal Indicators
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center;">
+                        <div style="background: #fff; padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                            <div style="font-size: 11px; color: var(--text-muted);">Visual Movement</div>
+                            <strong style="color: var(--primary);">{{ selected_session.activity_level }}</strong>
+                        </div>
+                        <div style="background: #fff; padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                            <div style="font-size: 11px; color: var(--text-muted);">Inactivity Duration</div>
+                            <strong style="color: var(--primary);">{{ selected_session.inactivity_minutes }} mins</strong>
+                        </div>
+                        <div style="background: #fff; padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                            <div style="font-size: 11px; color: var(--text-muted);">Audio Dialogue</div>
+                            <strong style="color: var(--primary);">{{ selected_session.audio_activity }}</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rule-breakdown">
+                    <h4>Why were these suggestions generated?</h4>
+                    {% if breakdown_data and breakdown_data.rule_reasons %}
+                        <ul>
+                            {% for reason in breakdown_data.rule_reasons %}
+                                <li>{{ reason }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <ul>
+                            <li>Computed based on combined score threshold of {{ selected_session.engagement_score }}/100.</li>
+                        </ul>
+                    {% endif %}
+                </div>
+
+                <div style="margin-top: 18px; font-size: 12.5px; color: var(--text-muted); line-height: 1.6;">
+                    <strong>Academic Project Defense Note:</strong> In college viva presentations, examiners look for determinism, edge case handling, and explainability. This rule engine replaces unpredictable API calls with an easily auditable scoring matrix.
+                </div>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body">
+            <div class="empty-table-state">
+                <div class="empty-icon">💡</div>
+                <p>No engagement sessions have been logged yet.</p>
+                <a href="{{ url_for('engagement') }}" class="btn btn-primary btn-sm" style="margin-top: 10px;">Create First Session</a>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

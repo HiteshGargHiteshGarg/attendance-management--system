@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Attendance & Engagement Agent{% endblock %}
+{% block page_title %}Classroom Overview & Analytics{% endblock %}
+
+{% block content %}
+<!-- Project Viva Banner -->
+<div class="notice-box">
+    <strong>🎓 College Project Demonstration Mode:</strong> 
+    This system records classroom attendance in local SQLite, analyzes multimodal classroom indicators (visual activity, inactivity time, audio participation) using transparent rule logic, and offers rule-based pedagogical suggestions.
+</div>
+
+<!-- KPI Cards -->
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-card-header">
+            <span class="kpi-title">Total Registered</span>
+            <span class="kpi-icon">👥</span>
+        </div>
+        <div class="kpi-value">{{ total_students }}</div>
+        <div class="kpi-subtext">Active enrolled students</div>
+    </div>
+
+    <div class="kpi-card present">
+        <div class="kpi-card-header">
+            <span class="kpi-title">Present Today</span>
+            <span class="kpi-icon">✅</span>
+        </div>
+        <div class="kpi-value">{{ stats.present_count }}</div>
+        <div class="kpi-subtext">Attending class on {{ stats.date }}</div>
+    </div>
+
+    <div class="kpi-card absent">
+        <div class="kpi-card-header">
+            <span class="kpi-title">Absent Today</span>
+            <span class="kpi-icon">❌</span>
+        </div>
+        <div class="kpi-value">{{ stats.absent_count }}</div>
+        <div class="kpi-subtext">Unaccounted or absent</div>
+    </div>
+
+    <div class="kpi-card score">
+        <div class="kpi-card-header">
+            <span class="kpi-title">Today's Attendance</span>
+            <span class="kpi-icon">📊</span>
+        </div>
+        <div class="kpi-value">{{ stats.percentage }}%</div>
+        <div class="kpi-progress">
+            <div class="kpi-progress-bar" style="width: {{ stats.percentage }}%;"></div>
+        </div>
+        <div class="kpi-subtext" style="margin-top: 6px;">{{ stats.present_count }} of {{ total_students }} present</div>
+    </div>
+</div>
+
+<!-- Quick Action Strip -->
+<div class="card" style="margin-bottom: 24px;">
+    <div class="card-body" style="padding: 16px 22px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+        <span style="font-weight: 600; font-size: 13.5px; color: var(--text-main);">
+            ⚡ Quick Shortcuts:
+        </span>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="{{ url_for('attendance') }}" class="btn btn-primary btn-sm">📝 Mark Today's Attendance</a>
+            <a href="{{ url_for('students') }}" class="btn btn-secondary btn-sm">➕ Add New Student</a>
+            <a href="{{ url_for('engagement') }}" class="btn btn-secondary btn-sm">🎯 Log Engagement Session</a>
+            <a href="{{ url_for('reports') }}" class="btn btn-outline btn-sm">📥 View & Export Reports</a>
+        </div>
+    </div>
+</div>
+
+<!-- Analytics & Recent Records Grid -->
+<div class="grid-2">
+    <!-- Chart: Engagement Trend -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <h3 class="card-title">Classroom Engagement Trend</h3>
+                <p class="card-subtitle">Calculated engagement scores (0 - 100) across recent sessions</p>
+            </div>
+            <a href="{{ url_for('engagement') }}" class="btn btn-outline btn-sm">Simulate</a>
+        </div>
+        <div class="card-body">
+            <div style="height: 260px; position: relative;">
+                <canvas id="engagementTrendChart"></canvas>
+            </div>
+            <div style="margin-top: 14px; display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 10px;">
+                <span>Average Score: <strong style="color: var(--primary);">{{ avg_engagement }}/100</strong></span>
+                <span>Target: <strong>&ge; 75/100 (Optimal)</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Latest Suggestions Snapshot -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <h3 class="card-title">Latest Teaching Suggestions</h3>
+                <p class="card-subtitle">Rule-driven pedagogical suggestions from latest session</p>
+            </div>
+            <a href="{{ url_for('teaching_suggestions') }}" class="btn btn-outline btn-sm">View Full</a>
+        </div>
+        <div class="card-body">
+            {% if latest_session %}
+                <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+                    <span style="font-size: 13px; color: var(--text-muted);">
+                        Session: <strong>{{ latest_session.session_date }}</strong>
+                    </span>
+                    <span class="badge {% if latest_session.engagement_score >= 75 %}badge-high{% elif latest_session.engagement_score >= 50 %}badge-warning{% else %}badge-low{% endif %}">
+                        Score: {{ latest_session.engagement_score }}/100
+                    </span>
+                </div>
+                <ul class="suggestions-list" style="margin-top: 8px;">
+                    {% for sug in latest_session.suggestions_list[:2] %}
+                        <li class="suggestion-item">
+                            <span class="suggestion-icon">💡</span>
+                            <div class="suggestion-content">
+                                <strong>Pedagogical Recommendation</strong>
+                                <p>{{ sug }}</p>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <div style="margin-top: 14px; font-size: 12px; color: var(--text-muted);">
+                    Indicators: Activity: <strong>{{ latest_session.activity_level }}</strong> &bull; 
+                    Inactivity: <strong>{{ latest_session.inactivity_minutes }}m</strong> &bull; 
+                    Audio: <strong>{{ latest_session.audio_activity }}</strong>
+                </div>
+            {% else %}
+                <div class="empty-table-state">
+                    <div class="empty-icon">💡</div>
+                    <p>No engagement sessions logged yet.</p>
+                    <a href="{{ url_for('engagement') }}" class="btn btn-primary btn-sm" style="margin-top: 10px;">Run First Session</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Latest Attendance Records Table -->
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h3 class="card-title">Latest Recorded Attendance Entries</h3>
+            <p class="card-subtitle">Real-time SQLite log of student attendance</p>
+        </div>
+        <a href="{{ url_for('attendance') }}" class="btn btn-outline btn-sm">Mark Attendance</a>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Roll Number</th>
+                        <th>Student Name</th>
+                        <th>Class</th>
+                        <th>Status</th>
+                        <th>Last Updated</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if latest_attendance %}
+                        {% for record in latest_attendance %}
+                            <tr>
+                                <td><strong>{{ record.attendance_date }}</strong></td>
+                                <td><code>{{ record.roll_number }}</code></td>
+                                <td>{{ record.student_name }}</td>
+                                <td>{{ record.class_name }}</td>
+                                <td>
+                                    {% if record.status == 'Present' %}
+                                        <span class="badge badge-present">✓ Present</span>
+                                    {% else %}
+                                        <span class="badge badge-absent">✗ Absent</span>
+                                    {% endif %}
+                                </td>
+                                <td style="color: var(--text-muted); font-size: 12px;">{{ record.updated_at }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6">
+                                <div class="empty-table-state">
+                                    <div class="empty-icon">📋</div>
+                                    <p>No attendance has been recorded yet.</p>
+                                    <a href="{{ url_for('attendance') }}" class="btn btn-primary btn-sm" style="margin-top: 10px;">Mark Today's Attendance</a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const chartCanvas = document.getElementById('engagementTrendChart');
+        if (!chartCanvas) return;
+
+        const dates = {{ chart_dates|safe }};
+        const scores = {{ chart_scores|safe }};
+
+        if (typeof Chart !== 'undefined' && dates.length > 0) {
+            new Chart(chartCanvas, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Engagement Score',
+                        data: scores,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                        borderWidth: 2.5,
+                        fill: true,
+                        tension: 0.35,
+                        pointBackgroundColor: '#2563eb',
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 100,
+                            ticks: { stepSize: 20 },
+                            grid: { color: '#f1f5f9' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` Score: ${context.parsed.y} / 100`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Mark Attendance - Attendance & Engagement Agent{% endblock %}
+{% block page_title %}Classroom Attendance Management{% endblock %}
+
+{% block content %}
+<!-- Date Selection & Filter Toolbar -->
+<div class="card" style="margin-bottom: 20px;">
+    <div class="card-body" style="padding: 16px 22px;">
+        <form method="GET" action="{{ url_for('attendance') }}" style="display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 180px;">
+                <label class="form-label" for="attDate">Attendance Date:</label>
+                <input type="date" id="attDate" name="date" class="form-control" value="{{ selected_date }}" required>
+            </div>
+
+            <div style="flex: 1; min-width: 180px;">
+                <label class="form-label" for="attClass">Filter by Class:</label>
+                <select id="attClass" name="class_filter" class="form-control">
+                    <option value="">All Classes</option>
+                    {% for c in classes %}
+                        <option value="{{ c }}" {% if selected_class == c %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <button type="submit" class="btn btn-secondary">Load Sheet</button>
+                <a href="{{ url_for('attendance') }}" class="btn btn-outline" title="Reset to today's date">Today</a>
+            </div>
+
+            <div style="margin-left: auto; display: flex; gap: 8px;">
+                <a href="{{ url_for('export_attendance_csv', date=selected_date) }}" class="btn btn-outline btn-sm" title="Export this date to CSV">
+                    📥 Export Date CSV
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Attendance Form -->
+<form method="POST" action="{{ url_for('attendance') }}">
+    <input type="hidden" name="attendance_date" value="{{ selected_date }}">
+
+    <!-- Attendance Action & Summary Bar -->
+    <div class="attendance-toolbar">
+        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+            <span style="font-size: 13.5px; color: var(--text-muted);">
+                Date: <strong>{{ selected_date }}</strong>
+            </span>
+            <span style="font-size: 13.5px;">
+                Present: <strong id="summaryPresentCount" style="color: var(--success);">{{ stats.present_count }}</strong>
+            </span>
+            <span style="font-size: 13.5px;">
+                Absent: <strong id="summaryAbsentCount" style="color: var(--danger);">{{ stats.absent_count }}</strong>
+            </span>
+            <span style="font-size: 13.5px;">
+                Attendance: <strong id="summaryPercentage" style="color: var(--primary);">{{ stats.percentage }}%</strong>
+            </span>
+        </div>
+
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <button type="button" id="btnMarkAllPresent" class="btn btn-outline btn-sm">
+                ✓ Mark All Present
+            </button>
+            <button type="button" id="btnMarkAllAbsent" class="btn btn-outline btn-sm">
+                ✗ Mark All Absent
+            </button>
+            <button type="submit" class="btn btn-primary btn-sm" style="padding: 6px 16px;">
+                💾 Save Attendance Sheet
+            </button>
+        </div>
+    </div>
+
+    <!-- Student Attendance Table -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <h3 class="card-title">Roll Call Sheet</h3>
+                <p class="card-subtitle">Mark each student Present or Absent. Records overwrite on save to prevent duplicates.</p>
+            </div>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 120px;">Roll Number</th>
+                            <th>Student Name</th>
+                            <th>Class</th>
+                            <th style="width: 240px; text-align: center;">Attendance Status</th>
+                            <th>Recorded State</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if students %}
+                            {% for s in students %}
+                                <tr>
+                                    <td><code>{{ s.roll_number }}</code></td>
+                                    <td><strong>{{ s.name }}</strong></td>
+                                    <td>{{ s.class_name }}</td>
+                                    <td style="text-align: center;">
+                                        <div class="status-radio-group">
+                                            <label class="status-radio-label {% if s.status == 'Present' %}is-present{% endif %}">
+                                                <input type="radio" 
+                                                       name="status_{{ s.student_id }}" 
+                                                       value="Present" 
+                                                       {% if s.status == 'Present' %}checked{% endif %}>
+                                                <span>✓ Present</span>
+                                            </label>
+                                            <label class="status-radio-label {% if s.status == 'Absent' %}is-absent{% endif %}">
+                                                <input type="radio" 
+                                                       name="status_{{ s.student_id }}" 
+                                                       value="Absent" 
+                                                       {% if s.status == 'Absent' %}checked{% endif %}>
+                                                <span>✗ Absent</span>
+                                            </label>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if s.status == 'Present' %}
+                                            <span class="badge badge-present">Present</span>
+                                        {% elif s.status == 'Absent' %}
+                                            <span class="badge badge-absent">Absent</span>
+                                        {% else %}
+                                            <span class="badge badge-warning" style="opacity: 0.8;">Unmarked</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5">
+                                    <div class="empty-table-state">
+                                        <div class="empty-icon">👥</div>
+                                        <p>No registered students found.</p>
+                                        <a href="{{ url_for('students') }}" class="btn btn-primary btn-sm" style="margin-top: 10px;">Register Students First</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if students %}
+            <div class="card-footer" style="padding: 16px 22px; background: #f8fafc; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end;">
+                <button type="submit" class="btn btn-primary">
+                    💾 Save Attendance for {{ selected_date }}
+                </button>
+            </div>
+        {% endif %}
+    </div>
+</form>
+
+<!-- Past Attendance History Date Selector -->
+<div class="card" style="margin-top: 28px;">
+    <div class="card-header">
+        <div>
+            <h3 class="card-title">Past Attendance History</h3>
+            <p class="card-subtitle">Quick jump to previously recorded attendance sessions</p>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if past_dates %}
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                {% for d in past_dates %}
+                    <a href="{{ url_for('attendance', date=d) }}" 
+                       class="btn {% if d == selected_date %}btn-primary{% else %}btn-outline{% endif %} btn-sm">
+                        📅 {{ d }}
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p style="color: var(--text-muted); font-size: 13px;">No past attendance dates recorded yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

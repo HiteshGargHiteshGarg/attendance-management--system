@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Camera Vision Demo - Attendance & Engagement Agent{% endblock %}
+{% block page_title %}Multimodal Camera Vision Demonstration (Optional){% endblock %}
+
+{% block content %}
+<!-- Academic Demonstration Banner -->
+<div class="notice-box">
+    <strong>📷 Academic Camera Feature Notice:</strong> 
+    This page demonstrates the multimodal computer vision module using OpenCV (Haar Cascade detection) to estimate classroom presence and head movement activity. 
+    <strong>Important:</strong> As per project specifications, this is an illustrative sensor demonstration. It does <em>not</em> perform automated biometric student identification or store biometric face templates, upholding privacy-first local principles.
+</div>
+
+<div class="grid-2">
+    <!-- Camera Feed Card -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <h3 class="card-title">Live Sensor Stream Preview</h3>
+                <p class="card-subtitle">Real-time OpenCV classroom head/face detection feed</p>
+            </div>
+            <span class="badge {% if opencv_available %}badge-high{% else %}badge-warning{% endif %}">
+                {% if opencv_available %}OpenCV 5.x Ready{% else %}Simulation Mode{% endif %}
+            </span>
+        </div>
+        <div class="card-body" style="text-align: center;">
+            <div class="camera-container">
+                {% if opencv_available %}
+                    <img src="{{ url_for('video_feed') }}" 
+                         class="camera-feed" 
+                         alt="OpenCV Live Video Stream"
+                         onerror="this.style.display='none'; document.getElementById('cameraFallback').style.display='block';">
+                    
+                    <div id="cameraFallback" style="display: none; padding: 40px 20px; color: #cbd5e1;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">📷</div>
+                        <p style="font-weight: 600; font-size: 14px;">Physical Webcam Unavailable</p>
+                        <p style="font-size: 12.5px; color: #94a3b8; margin-top: 4px;">
+                            The application backend is operating normally. If a physical camera is not connected to this PC, manual indicators can be used on the Engagement page.
+                        </p>
+                    </div>
+                {% else %}
+                    <div style="padding: 40px 20px; color: #cbd5e1;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">📷</div>
+                        <p style="font-weight: 600; font-size: 14px;">OpenCV Not Available</p>
+                        <p style="font-size: 12.5px; color: #94a3b8; margin-top: 4px;">
+                            Install opencv-python to activate the real-time webcam stream.
+                        </p>
+                    </div>
+                {% endif %}
+
+                <div class="camera-hud">
+                    <span>🟢 Sensor: <strong>Classroom View Monitor</strong></span>
+                    <span>Algorithm: <strong>Haar Cascade FrontalFace</strong></span>
+                </div>
+            </div>
+
+            <!-- In-browser WebCam Alternative (HTML5) -->
+            <div style="margin-top: 18px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+                <button type="button" id="btnBrowserCam" class="btn btn-outline btn-sm">
+                    🌐 Test In-Browser Webcam (HTML5)
+                </button>
+                <a href="{{ url_for('engagement') }}" class="btn btn-primary btn-sm">
+                    ➡️ Transfer Observation to Engagement Logger
+                </a>
+            </div>
+
+            <!-- In-browser video element (hidden by default) -->
+            <div id="browserCamWrapper" style="display: none; margin-top: 16px;">
+                <video id="browserVideo" autoplay playsinline style="width: 100%; max-width: 480px; border-radius: var(--radius-md); border: 2px solid var(--primary);"></video>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">
+                    Direct client-side video feed via HTML5 MediaDevices API.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Technical Architecture & Viva Guide Card -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <h3 class="card-title">Multimodal Architecture & Viva Notes</h3>
+                <p class="card-subtitle">How vision indicators feed into engagement scoring</p>
+            </div>
+        </div>
+        <div class="card-body">
+            <h4 style="font-size: 13.5px; font-weight: 700; margin-bottom: 8px;">1. Multimodal Sensing Pipeline</h4>
+            <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 14px;">
+                In a production smart classroom, physical sensors capture multiple data modalities:
+            </p>
+            <ul style="padding-left: 20px; font-size: 12.5px; color: var(--text-main); line-height: 1.6; margin-bottom: 16px;">
+                <li><strong>Visual Modality:</strong> Optical feed calculates head pose, gaze focus, and physical movement deltas between frames.</li>
+                <li><strong>Acoustic Modality:</strong> Ambient microphone measures audio decibel levels and conversational frequency to gauge peer discussions.</li>
+                <li><strong>Temporal Modality:</strong> Tracks continuous inactive lecture minutes to trigger timely teaching breaks.</li>
+            </ul>
+
+            <h4 style="font-size: 13.5px; font-weight: 700; margin-bottom: 8px;">2. Privacy-by-Design Compliance</h4>
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; font-size: 12.5px; color: var(--text-muted); line-height: 1.6;">
+                Unlike invasive facial recognition that matches student faces against biometric databases, this system only counts general presence and head movement vectors. No biometric embeddings, facial coordinates, or personal images are permanently stored in SQLite.
+            </div>
+
+            <h4 style="font-size: 13.5px; font-weight: 700; margin-top: 18px; margin-bottom: 8px;">3. Graceful Fallback Design</h4>
+            <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.6;">
+                Even if the classroom computer does not have a webcam or the sensor fails, the instructor can manually select classroom indicators on the <strong>Engagement Analytics</strong> page without disrupting attendance tracking.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnBrowserCam = document.getElementById('btnBrowserCam');
+        const wrapper = document.getElementById('browserCamWrapper');
+        const video = document.getElementById('browserVideo');
+
+        if (btnBrowserCam && video) {
+            btnBrowserCam.addEventListener('click', function() {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({ video: true })
+                        .then(stream => {
+                            video.srcObject = stream;
+                            wrapper.style.display = 'block';
+                            btnBrowserCam.textContent = '✓ Browser Webcam Running';
+                            btnBrowserCam.classList.remove('btn-outline');
+                            btnBrowserCam.classList.add('btn-success');
+                        })
+                        .catch(err => {
+                            alert('Browser camera permission denied or camera not found: ' + err.message);
+                        });
+                } else {
+                    alert('getUserMedia not supported in this browser.');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}Reports & CSV Exports - Attendance & Engagement Agent{% endblock %}
+{% block page_title %}Reports & CSV Data Exports{% endblock %}
+
+{% block content %}
+<!-- Export Action Cards -->
+<div class="kpi-grid" style="margin-bottom: 28px;">
+    <div class="kpi-card" style="border-top: 4px solid var(--primary);">
+        <div class="kpi-card-header">
+            <span class="kpi-title">Raw Attendance Logs</span>
+            <span class="kpi-icon">📄</span>
+        </div>
+        <div style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 14px;">
+            Detailed historical roll-call logs of each student by date.
+        </div>
+        <a href="{{ url_for('export_attendance_csv') }}" class="btn btn-primary btn-sm" style="width: 100%;">
+            📥 Download Attendance CSV
+        </a>
+    </div>
+
+    <div class="kpi-card" style="border-top: 4px solid var(--success);">
+        <div class="kpi-card-header">
+            <span class="kpi-title">Student Summary Report</span>
+            <span class="kpi-icon">📊</span>
+        </div>
+        <div style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 14px;">
+            Cumulative attendance rate %, present days, and absent days per student.
+        </div>
+        <a href="{{ url_for('export_student_summary_csv') }}" class="btn btn-success btn-sm" style="width: 100%;">
+            📥 Download Student Summary CSV
+        </a>
+    </div>
+
+    <div class="kpi-card" style="border-top: 4px solid var(--warning);">
+        <div class="kpi-card-header">
+            <span class="kpi-title">Engagement Sessions Log</span>
+            <span class="kpi-icon">🎯</span>
+        </div>
+        <div style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 14px;">
+            All multimodal engagement logs, scores, categories, and suggestions.
+        </div>
+        <a href="{{ url_for('export_engagement_csv') }}" class="btn btn-secondary btn-sm" style="width: 100%; border: 1px solid var(--border-color);">
+            📥 Download Engagement CSV
+        </a>
+    </div>
+</div>
+
+<!-- Student-wise Cumulative Attendance Summary Table -->
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h3 class="card-title">Student-wise Cumulative Attendance Summary</h3>
+            <p class="card-subtitle">Aggregated attendance statistics across all recorded lecture dates</p>
+        </div>
+        <a href="{{ url_for('export_student_summary_csv') }}" class="btn btn-outline btn-sm">Export Summary CSV</a>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Roll No</th>
+                        <th>Student Name</th>
+                        <th>Class</th>
+                        <th>Total Sessions</th>
+                        <th>Present Days</th>
+                        <th>Absent Days</th>
+                        <th>Attendance %</th>
+                        <th>Academic Standing</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if student_summaries %}
+                        {% for s in student_summaries %}
+                            <tr>
+                                <td><code>{{ s.roll_number }}</code></td>
+                                <td><strong>{{ s.name }}</strong></td>
+                                <td>{{ s.class_name }}</td>
+                                <td>{{ s.total_sessions }}</td>
+                                <td><span class="badge badge-present">{{ s.present_count }}</span></td>
+                                <td><span class="badge badge-absent">{{ s.absent_count }}</span></td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <strong>{{ s.percentage }}%</strong>
+                                        <div style="width: 60px; height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+                                            <div style="width: {{ s.percentage }}%; height: 100%; background: {% if s.percentage >= 75 %}var(--success){% elif s.percentage >= 50 %}var(--warning){% else %}var(--danger){% endif %};"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if s.percentage >= 75 %}
+                                        <span class="badge badge-high">Eligible (&ge;75%)</span>
+                                    {% elif s.percentage >= 50 %}
+                                        <span class="badge badge-warning">Shortage Warning</span>
+                                    {% else %}
+                                        <span class="badge badge-low">Critical Deficit (&lt;50%)</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8">
+                                <div class="empty-table-state">
+                                    <div class="empty-icon">📊</div>
+                                    <p>No student attendance records found.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Date-wise Attendance Summary -->
+<div class="grid-2">
+    <!-- Date Summaries -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <h3 class="card-title">Recent Session Attendance Turnout</h3>
+                <p class="card-subtitle">Daily present/absent breakdown</p>
+            </div>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Present</th>
+                            <th>Absent</th>
+                            <th>Turnout %</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if date_summaries %}
+                            {% for d in date_summaries %}
+                                <tr>
+                                    <td><strong>{{ d.date }}</strong></td>
+                                    <td><span class="badge badge-present">{{ d.present_count }}</span></td>
+                                    <td><span class="badge badge-absent">{{ d.absent_count }}</span></td>
+                                    <td><strong>{{ d.percentage }}%</strong></td>
+                                    <td>
+                                        <a href="{{ url_for('attendance', date=d.date) }}" class="btn btn-outline btn-sm">View Sheet</a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5">
+                                    <div class="empty-table-state"><p>No session data recorded.</p></div>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Engagement Sessions Snapshot -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <h3 class="card-title">Classroom Engagement Logs</h3>
+                <p class="card-subtitle">Recent multimodal session metrics</p>
+            </div>
+            <a href="{{ url_for('export_engagement_csv') }}" class="btn btn-outline btn-sm">Export CSV</a>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Session Date</th>
+                            <th>Score</th>
+                            <th>Category</th>
+                            <th>Topic</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if engagement_sessions %}
+                            {% for e in engagement_sessions[:7] %}
+                                <tr>
+                                    <td><strong>{{ e.session_date.split()[0] if ' ' in e.session_date else e.session_date }}</strong></td>
+                                    <td><strong>{{ e.engagement_score }}/100</strong></td>
+                                    <td>
+                                        <span class="badge {% if e.engagement_score >= 75 %}badge-high{% elif e.engagement_score >= 50 %}badge-warning{% else %}badge-low{% endif %}">
+                                            {{ e.category }}
+                                        </span>
+                                    </td>
+                                    <td style="font-size: 12px; color: var(--text-muted);">{{ e.session_notes or 'Lecture Session' }}</td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4">
+                                    <div class="empty-table-state"><p>No engagement sessions logged.</p></div>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

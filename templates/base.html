@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Multimodal Attendance & Engagement Agent{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Offline-First Local Chart.js with CDN Fallback -->
+    <script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
+    <script>
+        if (typeof Chart === 'undefined') {
+            document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>');
+        }
+    </script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <span class="brand-badge">College Project</span>
+                <h1>Attendance & Engagement Agent</h1>
+                <p>Multimodal Classroom Analytics</p>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Core Management</div>
+                <a href="{{ url_for('dashboard') }}" class="nav-link {% if active_page == 'dashboard' %}active{% endif %}">
+                    <span class="nav-icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="{{ url_for('students') }}" class="nav-link {% if active_page == 'students' %}active{% endif %}">
+                    <span class="nav-icon">👥</span>
+                    <span>Students</span>
+                </a>
+                <a href="{{ url_for('attendance') }}" class="nav-link {% if active_page == 'attendance' %}active{% endif %}">
+                    <span class="nav-icon">📝</span>
+                    <span>Mark Attendance</span>
+                </a>
+
+                <div class="nav-section-title">Analytics & Intelligence</div>
+                <a href="{{ url_for('engagement') }}" class="nav-link {% if active_page == 'engagement' %}active{% endif %}">
+                    <span class="nav-icon">📈</span>
+                    <span>Engagement Analytics</span>
+                </a>
+                <a href="{{ url_for('teaching_suggestions') }}" class="nav-link {% if active_page == 'teaching_suggestions' %}active{% endif %}">
+                    <span class="nav-icon">💡</span>
+                    <span>Teaching Suggestions</span>
+                </a>
+                <a href="{{ url_for('reports') }}" class="nav-link {% if active_page == 'reports' %}active{% endif %}">
+                    <span class="nav-icon">📑</span>
+                    <span>Reports & CSV Export</span>
+                </a>
+
+                <div class="nav-section-title">Sensor Demo</div>
+                <a href="{{ url_for('camera_demo') }}" class="nav-link {% if active_page == 'camera' %}active{% endif %}">
+                    <span class="nav-icon">📷</span>
+                    <span>Camera Vision Demo</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <form action="{{ url_for('seed_demo') }}" method="POST" class="demo-seed-form" onsubmit="return confirm('Load sample demonstration data (10 students, attendance history, engagement logs)?');">
+                    <button type="submit" title="Populates 10 students and realistic records for viva testing">
+                        ⚡ Load Demo Sample Data
+                    </button>
+                </form>
+                <div style="margin-top: 10px; font-size: 11px; text-align: center; color: #64748b;">
+                    SQLite Local Storage &bull; Offline Ready
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <div class="main-wrapper">
+            <!-- Topbar -->
+            <header class="topbar">
+                <div class="topbar-left">
+                    <h2 class="page-title">{% block page_title %}Dashboard{% endblock %}</h2>
+                </div>
+                <div class="topbar-right">
+                    <span class="system-status-badge">
+                        <span class="status-dot"></span> Local Server Active
+                    </span>
+                    <span>📅 Today: <strong>{{ today_str }}</strong></span>
+                </div>
+            </header>
+
+            <!-- Page Body -->
+            <main class="content-area">
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="flash-container">
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">
+                                    <span>{{ message }}</span>
+                                    <button type="button" class="alert-close" aria-label="Close">&times;</button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- Core App JS -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
